@@ -67,7 +67,6 @@ class _MyHomePageState extends State<MyHomePage> {
     reponse?.data?.qt = 0;
     reponse?.data?.dluo = "";
     reponse?.data?.url_pdf = "";
-    reponse?.data?.zebra?.zpl = "";
     super.initState();
     myFocusNode = FocusNode();
     myFocusNode.addListener(() {
@@ -157,7 +156,6 @@ class _MyHomePageState extends State<MyHomePage> {
       reponse?.show?.lot = false;
       qrCode1Value = "";
       _path = "";
-      reponse?.data?.zebra?.zpl = "";
     });
   }
 

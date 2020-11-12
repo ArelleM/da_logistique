@@ -33,7 +33,7 @@ class Data {
   var zone;
   var confirm;
   var url_pdf;
-  Zebra zebra;
+  var zebra;
 
   Data({
     this.qr_code_001,
@@ -106,7 +106,7 @@ class Show {
 }
 // mapping class show
 class Zebra {
-  String zpl;
+  var zpl;
 
   Zebra({
     this.zpl,
