@@ -14,6 +14,8 @@ import 'take_picture.dart';
 import 'package:crypto/crypto.dart';
 import 'package:printing/printing.dart';
 import 'package:ota_update/ota_update.dart';
+import 'package:flutter_socket_io/flutter_socket_io.dart';
+import 'package:flutter_socket_io/socket_io_manager.dart';
 
 
 
@@ -26,6 +28,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
+  SocketIO socket;
   bool isLoading = false;
   OtaEvent currentEvent;
   String _path = null;
@@ -64,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
     reponse?.data?.qt = 0;
     reponse?.data?.dluo = "";
     reponse?.data?.url_pdf = "";
+    reponse?.data?.zebra?.zpl = "";
     super.initState();
     myFocusNode = FocusNode();
     myFocusNode.addListener(() {
@@ -82,10 +86,8 @@ class _MyHomePageState extends State<MyHomePage> {
       //LINK CONTAINS APK OF FLUTTER HELLO WORLD FROM FLUTTER SDK EXAMPLES
       OtaUpdate()
           .execute(
-        'https://internal1.4q.sk/flutter_hello_world.apk',
-        destinationFilename: 'flutter_hello_world.apk',
-        //FOR NOW ANDROID ONLY - ABILITY TO VALIDATE CHECKSUM OF FILE:
-        sha256checksum: "d6da28451a1e15cf7a75f2c3f151befad3b80ad0bb232ab15c20897e54f21478",
+        'https://cantalfret.proxipause.eu/app-release.apk',
+        destinationFilename: 'app-release.apk',
       )
           .listen(
             (OtaEvent event) {
@@ -155,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
       reponse?.show?.lot = false;
       qrCode1Value = "";
       _path = "";
+      reponse?.data?.zebra?.zpl = "";
     });
   }
 
@@ -168,11 +171,26 @@ class _MyHomePageState extends State<MyHomePage> {
     return _visible;
   }
 
-  // lance l'impression d'une étiquette
+  // lance l'impression d'une étiquette en pdf
   Future _print() async{
-    http.Response response = await http.get('${reponse.data.url_pdf}');
-    var pdfData = response.bodyBytes;
-    await Printing.layoutPdf(onLayout: (format) async => pdfData);
+    Socket socket = await Socket.connect('192.168.1.76', 9100);
+    print('connected');
+
+    // listen to the received data event stream
+    socket.listen((List<int> event) {
+      print(utf8.decode(event));
+    });
+
+    // send zpl data
+    socket.add(utf8.encode(reponse?.data?.zebra?.zpl));
+
+    // wait 5 seconds
+    await Future.delayed(Duration(seconds: 5));
+
+    // .. and close the socket
+    socket.close();
+
+
 
   }
 
@@ -232,7 +250,6 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             centerTitle: true,
-            title: Text("Simulateur PDA"),
             actions: <Widget>[
               // Lance la mise à jour de l'application en arrière plan, puis l'installation
               IconButton(
@@ -312,7 +329,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                   autofocus: true,
                                   controller: qrCode1Controller,
-                                  keyboardType: TextInputType.number,
+
 
                                 ) : Container(),
                                 reponse?.show?.qr_code_001 == true ?
@@ -515,7 +532,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ),
                                   ),
                                 ) : Container()],
-
                             ),
                           ) ,
                         )
@@ -596,19 +612,6 @@ class _MyHomePageState extends State<MyHomePage> {
           });
           _toggle();
         });
-      }
-      else{
-        // S'il y a eu un problème avec l'envoi, arrete le chargement et affiche Erreur
-        Future.delayed(const Duration(milliseconds: 500), () {
-
-          setState(() {
-            isLoading = false;
-            alert = "Erreur";
-            _resetDataSend();
-          });
-
-        });
-        _toggle();
       }
     }else{
       // Si on envoie une photo, rajoute les champs photo et libelle a la requete
@@ -709,22 +712,9 @@ class _MyHomePageState extends State<MyHomePage> {
             _toggle();
           });
         }
-        else{
-          // S'il y a eu un problème avec l'envoi, arrete le chargement et affiche Erreur
-          Future.delayed(const Duration(milliseconds: 500), () {
-
-            setState(() {
-              isLoading = false;
-              alert = "Erreur";
-              _resetDataSend();
-            });
-
-          });
-        }
-
 
       }else{
-        if(qrCode1Value == null || qrCode1Value == "" || reponse?.alert == "Scanner le QR-CODE de la palette de stockage"){
+        if(qrCode1Value == null || qrCode1Value == "" || reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
           qrCode1Value = qrCode1Controller.value.text;
         }
         setState(() {
@@ -801,22 +791,10 @@ class _MyHomePageState extends State<MyHomePage> {
             setState(() {
               _visible = true;
               isLoading = false;
+                qrCode1Value = "";
             });
             _toggle();
           });
-        }
-        else{
-          // S'il y a eu un problème avec l'envoi, arrete le chargement et affiche Erreur
-          Future.delayed(const Duration(milliseconds: 500), () {
-
-            setState(() {
-              isLoading = false;
-              alert = "Erreur";
-              _resetDataSend();
-            });
-
-          });
-
         }
       }
     }

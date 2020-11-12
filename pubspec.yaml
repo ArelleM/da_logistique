@@ -41,6 +41,7 @@ dev_dependencies:
   crypto: ^2.1.5
   printing: ^3.6.1
   ota_update: ^2.4.1
+  flutter_socket_io: ^0.6.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

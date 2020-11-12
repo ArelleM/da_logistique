@@ -33,6 +33,7 @@ class Data {
   var zone;
   var confirm;
   var url_pdf;
+  Zebra zebra;
 
   Data({
     this.qr_code_001,
@@ -45,6 +46,7 @@ class Data {
     this.zone,
     this.confirm,
     this.url_pdf,
+    this.zebra
   });
 
   Data.fromJson(Map json) {
@@ -58,6 +60,7 @@ class Data {
     zone = json["zone"];
     confirm = json["confirm"];
     url_pdf = json["url_pdf"] as String;
+    zebra = Zebra.fromJson(json["zebra"]);
   }
 
 
@@ -98,4 +101,20 @@ class Show {
     submit = json["submit"] as bool;
     print = json["print"] as bool;
   }
+
+
+}
+// mapping class show
+class Zebra {
+  String zpl;
+
+  Zebra({
+    this.zpl,
+  });
+
+  Zebra.fromJson(Map json) {
+    zpl = json["ZPL"];
+  }
+
+
 }
