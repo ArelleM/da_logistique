@@ -171,22 +171,36 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // lance l'impression d'une étiquette en pdf
   Future _print() async{
-    Socket socket = await Socket.connect('192.168.1.76', 9100);
-    print('connected');
 
+
+
+
+
+       List<String> printList = reponse?.data?.zebra?.zpl;
+    for (var l in printList) {
+      Socket socket = await Socket.connect('192.168.1.76', 9100);
+      print('connected');
+      socket.listen((List<int> event) {
+        print(utf8.decode(event));
+      });
+
+      // send zpl data
+      socket.add(utf8.encode(l));
+      // wait 5 seconds
+      await Future.delayed(Duration(seconds: 5));
+
+      // .. and close the socket
+      socket.close();
+    }
     // listen to the received data event stream
-    socket.listen((List<int> event) {
+/*    socket.listen((List<int> event) {
       print(utf8.decode(event));
     });
 
     // send zpl data
-    socket.add(utf8.encode(reponse?.data?.zebra?.zpl));
+    socket.add(utf8.encode(reponse?.data?.zebra?.zpl));*/
 
-    // wait 5 seconds
-    await Future.delayed(Duration(seconds: 5));
 
-    // .. and close the socket
-    socket.close();
 
 
 

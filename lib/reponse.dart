@@ -104,7 +104,7 @@ class Show {
 
 
 }
-// mapping class show
+/*// mapping class show
 class Zebra {
   var zpl;
 
@@ -116,5 +116,33 @@ class Zebra {
     zpl = json["ZPL"];
   }
 
+
+}*/
+
+
+
+class Zebra {
+  var ipPrint;
+  var portPrint;
+  final List<String> zpl;
+
+  Zebra({
+    this.ipPrint,
+    this.portPrint,
+    this.zpl
+  });
+
+  factory Zebra.fromJson(Map json) {
+    var zplFromJson  = json['ZPL'];
+    //print(streetsFromJson.runtimeType);
+    // List<String> streetsList = new List<String>.from(streetsFromJson);
+    List<String> zplList = zplFromJson.cast<String>();
+
+    return new Zebra(
+      ipPrint: json['IP'],
+      portPrint: json['PORT'],
+      zpl: zplList,
+    );
+  }
 
 }
