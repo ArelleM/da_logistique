@@ -67,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
     reponse?.data?.qt = 0;
     reponse?.data?.dluo = "";
     reponse?.data?.url_pdf = "";
+    _resetOnPost();
     super.initState();
     myFocusNode = FocusNode();
     myFocusNode.addListener(() {
@@ -79,10 +80,13 @@ class _MyHomePageState extends State<MyHomePage> {
     start = true;
   }
 
-
+// Met a jour l'application, necessite de mettre a jour le fichier app-release.apk
+  // pour cela créer un build de l'apk dans Build -> Flutter -> Build APK
+  // l'apk se trouve dans le dossier de l'application Dossier\build\app\outputs\flutter-apk
+  // /!\ bien prendre le fichier app-release.apk
   Future<void> tryOtaUpdate() async {
     try {
-      //LINK CONTAINS APK OF FLUTTER HELLO WORLD FROM FLUTTER SDK EXAMPLES
+
       OtaUpdate()
           .execute(
         'https://cantalfret.proxipause.eu/app-release.apk',
@@ -98,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Permet de vérifier si le PDA est connecté à internet
+  // Permet de vérifier si le PDA est connecté à internet et affiche un message si non connecté a internet
   void isConnected() async{
     try {
       final result = await InternetAddress.lookup('google.com');
@@ -115,21 +119,29 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Reset les valeurs des champs Textfield
+  void _reset() {
+    _resetOnPost();
+    _resetDataSend();
+    qTController = TextEditingController(text: "");
+    qrCode1Value ="";
+    qrCode2Value="";
+    qrCode3Value ="";
+  }
+  // Reset les valeurs des champs Textfield(valeurs envoyées)
   void _resetOnPost() async {
 
     setState(() {
       qrCode1Controller = TextEditingController(text: "");
-      qTController = TextEditingController(text: "");
       dluoController = TextEditingController(text: "");
       nLotController = TextEditingController(text: "");
       zoneController = TextEditingController(text: "");
       motifController = TextEditingController(text: "");
+      _path = null;
       isLoading = false;
     });
   }
 
-  // Remise à zéro des valeurs reçues ( icone maison)
+  // Remise à zéro des valeurs reçues (icone maison)
   void _resetDataSend() async {
     setState(() {
       isLoading = false;
@@ -141,21 +153,20 @@ class _MyHomePageState extends State<MyHomePage> {
       reponse?.data?.confirm = 0;
       reponse?.data?.condi = 3;
       reponse?.data?.zone = "";
-      reponse?.data?.qt = 0;
       reponse?.data?.dluo = "";
       reponse?.data?.url_pdf = "";
       reponse?.show?.qr_code_001 = true;
       reponse?.show?.confirm = false;
       reponse?.show?.dluo = false;
       reponse?.show?.zone = false;
-      reponse?.show?.photo = false;
+      reponse?.show?.reserve = false;
       start = true;
       reponse?.show?.qt = false;
       reponse?.show?.print = false;
       reponse?.show?.submit = false;
       reponse?.show?.lot = false;
       qrCode1Value = "";
-      _path = "";
+      _path = null;
     });
   }
 
@@ -171,38 +182,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // lance l'impression d'une étiquette en pdf
   Future _print() async{
-
-
-
-
-
-       List<String> printList = reponse?.data?.zebra?.zpl;
+    // récupère la liste des étiquettes à imprimer
+    List<String> printList = reponse?.data?.zebra?.zpl;
+    // parcours le tableau pour envoyer une socket par étiquette
     for (var l in printList) {
-      Socket socket = await Socket.connect('192.168.1.76', 9100);
+      // connexion à la socket via l'adresse ip de l'imprimante envoyée par l'API (192.168.1.76) et du port (9100)
+      Socket socket = await Socket.connect(reponse?.data?.zebra?.ipPrint, 9100);
       print('connected');
+      // écoute la socket
       socket.listen((List<int> event) {
         print(utf8.decode(event));
       });
 
-      // send zpl data
+      // envoie les data en zpl
       socket.add(utf8.encode(l));
-      // wait 5 seconds
-      await Future.delayed(Duration(seconds: 5));
+      // attend 5 secondes
+      await Future.delayed(Duration(seconds: 3));
 
-      // .. and close the socket
+      // .. ferme la socket
       socket.close();
     }
-    // listen to the received data event stream
-/*    socket.listen((List<int> event) {
-      print(utf8.decode(event));
-    });
-
-    // send zpl data
-    socket.add(utf8.encode(reponse?.data?.zebra?.zpl));*/
-
-
-
-
 
   }
 
@@ -258,7 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
               icon: const Icon(Icons.home),
               tooltip: 'Redémarrer',
               onPressed: () {
-                _resetDataSend();
+                _reset();
               },
             ),
             centerTitle: true,
@@ -344,9 +343,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
 
                                 ) : Container(),
-                                reponse?.show?.qr_code_001 == true ?
-                                Html(data: "${reponse.data.qr_code_001}")
-                                    : Container(),
                                 reponse?.alert == null? Container() :
                                 Visibility(
                                   visible: _visible,
@@ -499,7 +495,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         Image.file(File(_path))
                                         ,
                                         // Si _path est null et qu'une photo est demandée, bouton qui déclenche l'appareil photo -> take_picture.dart
-                                        _path == null && reponse?.show?.photo == true?
+                                        _path == null && reponse?.show?.reserve == true?
                                         RaisedButton(
                                           color: Colors.deepPurpleAccent,
                                           onPressed: () {
@@ -511,7 +507,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                             ),
                                           ),
                                         ) : Container(),
-                                        reponse?.show?.photo == true?
+                                        reponse?.show?.reserve == true?
                                         // Champ pour le motif/Libelle de la photo
                                         TextFormField(
                                           autofocus: true,
@@ -579,7 +575,20 @@ class _MyHomePageState extends State<MyHomePage> {
       };
 
 
-      var body ={"qr_code_001":"DA_NULL","qr_code_002":"$qrCode2Value","qr_code_003": "$qrCode3Value","qt":qTController.value.text,"condi":"$condi","dluo":"${dluoController.value.text}","lot":"${nLotController.value.text}","zone": "${zoneController.value.text}","confirm": "${reponse?.data?.confirm}","target":"analyse","keypass":"$keypass","keytime":"$time",};
+      var body ={
+        "qr_code_001":"DA_NULL",
+        "qr_code_002":"$qrCode2Value",
+        "qr_code_003": "$qrCode3Value",
+        "qt":qTController.value.text,
+        "condi":"$condi",
+        "dluo":"${dluoController.value.text}",
+        "lot":"${nLotController.value.text}",
+        "zone": "${zoneController.value.text}",
+        "confirm": "${reponse?.data?.confirm}",
+        "target":"analyse",
+        "keypass":"$keypass",
+        "keytime":"$time",
+      };
 
 
       Response response = await post(urlEnvoi, headers: headers, body: body);
@@ -622,15 +631,16 @@ class _MyHomePageState extends State<MyHomePage> {
             isLoading =false;
             _visible = true;
           });
+          _resetOnPost();
           _toggle();
         });
       }
     }else{
       // Si on envoie une photo, rajoute les champs photo et libelle a la requete
 
-      if(reponse?.show?.photo == true){
+      if(reponse?.show?.reserve == true){
         // Assigne la valeur du champ qrcode1 à qrcode 1 s'il est null ou vide
-        if(qrCode1Value == null || qrCode1Value == ""){
+        if(qrCode1Value == null || qrCode1Value == ""|| reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
           qrCode1Value = qrCode1Controller.value.text;
         }
         setState(() {
@@ -706,6 +716,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 qrCode1Value = "";
               });
             }
+            if(reponse?.show?.reserve == false){
+              setState(() {
+                reserve ="";
+                _path =null;
+                isLoading =false;
+              });
+            }
             if(reponse?.alert == false){
               // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
               alert = "";
@@ -717,10 +734,14 @@ class _MyHomePageState extends State<MyHomePage> {
             // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
             setState(() {
               reserve = "";
+              qrCode1Value = reponse?.data?.qr_code_001;
+              if(reponse?.data?.qt == 0){
+                qTController = TextEditingController(text: "");
+              }
               _visible = true;
               isLoading = false;
             });
-            _resetDataSend();
+            _resetOnPost();
             _toggle();
           });
         }
@@ -751,7 +772,19 @@ class _MyHomePageState extends State<MyHomePage> {
         };
 
 
-        var body ={"qr_code_001":"$qrCode1Value","qr_code_002":"$qrCode2Value","qr_code_003": "$qrCode3Value","qt":qTController.value.text,"condi":"$condi","dluo":"${dluoController.value.text}","lot":"${nLotController.value.text}","zone": "${zoneController.value.text}","confirm": "${reponse?.data?.confirm}","target":"analyse","keypass":"$keypass","keytime":"$time",};
+        var body ={"qr_code_001":"$qrCode1Value",
+          "qr_code_002":"$qrCode2Value",
+          "qr_code_003": "$qrCode3Value",
+          "qt":qTController.value.text,
+          "condi":"$condi",
+          "dluo":"${dluoController.value.text}",
+          "lot":"${nLotController.value.text}",
+          "zone": "${zoneController.value.text}",
+          "confirm": "${reponse?.data?.confirm}",
+          "target":"analyse",
+          "keypass":"$keypass",
+          "keytime":"$time",
+        };
 
 
         Response response = await post(urlEnvoi, headers: headers, body: body);
@@ -794,23 +827,28 @@ class _MyHomePageState extends State<MyHomePage> {
             // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
             if(reponse?.alert == false){
               alert = "";
+              _resetOnPost();
             }
             else {
               // sinon, renvoie l'alert reçue dans son controller pour l'afficher
               alert = reponse?.alert;
+              _resetOnPost();
             }
             // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
             setState(() {
+              if(reponse?.data?.qt == 0){
+                qTController = TextEditingController(text: "");
+              }
               _visible = true;
               isLoading = false;
-                qrCode1Value = "";
+                qrCode1Value = reponse?.data?.qr_code_001;
             });
+            _resetOnPost();
             _toggle();
           });
         }
       }
     }
-
   }
 }
 

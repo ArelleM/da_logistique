@@ -74,7 +74,7 @@ class Show {
   bool lot;
   bool zone;
   bool confirm;
-  bool photo;
+  bool reserve;
   bool submit;
   bool print;
 
@@ -85,7 +85,7 @@ class Show {
     this.lot,
     this.zone,
     this.confirm,
-    this.photo,
+    this.reserve,
     this.submit,
     this.print,
   });
@@ -97,7 +97,7 @@ class Show {
     lot = json["lot"] as bool;
     zone = json["zone"] as bool;
     confirm = json["confirm"] as bool;
-    photo = json["reserve"] as bool;
+    reserve = json["reserve"] as bool;
     submit = json["submit"] as bool;
     print = json["print"] as bool;
   }
