@@ -173,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
 // Cache le champ alerte au bout de 3 secondes
   _toggle() async {
-    await new Future.delayed(const Duration(seconds : 3));
+    await new Future.delayed(const Duration(seconds : 10));
     setState(() {
       _visible = !_visible;
     });
@@ -328,7 +328,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 //Affiche le title s'il n'est pas null
                                 Html(data: "${reponse.title}",style: {
                                   "div": Style(
-                                      fontSize: FontSize(12.0)
+                                      fontSize: FontSize(14.0)
                                   ),
                                 }): Container(),
                                 reponse?.show?.qr_code_001 == true || start == true ?
@@ -336,7 +336,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 TextFormField(
                                   focusNode: myFocusNode,
                                   decoration: const InputDecoration(
-                                    hintText: 'Scanner le QR-Code du document papier',
+                                    hintText: 'Scanner le QR-Code',
                                   ),
                                   autofocus: true,
                                   controller: qrCode1Controller,
@@ -588,6 +588,7 @@ class _MyHomePageState extends State<MyHomePage> {
         "target":"analyse",
         "keypass":"$keypass",
         "keytime":"$time",
+        "nPDA":"123456789"
       };
 
 
@@ -683,6 +684,7 @@ class _MyHomePageState extends State<MyHomePage> {
           "target": "analyse",
           "keypass": "$keypass",
           "keytime" : "$time",
+          "nPDA":"123456789",
           "base64" : reserve,
         };
 
@@ -784,6 +786,7 @@ class _MyHomePageState extends State<MyHomePage> {
           "target":"analyse",
           "keypass":"$keypass",
           "keytime":"$time",
+          "nPDA":"123456789"
         };
 
 
