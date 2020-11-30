@@ -16,6 +16,7 @@ import 'package:printing/printing.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:flutter_socket_io/flutter_socket_io.dart';
 import 'package:flutter_socket_io/socket_io_manager.dart';
+import 'package:serial_number/serial_number.dart';
 
 
 
@@ -28,11 +29,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _formKey = GlobalKey<FormState>();
+  String _serialNumber = 'Unknown';
   SocketIO socket;
   bool isLoading = false;
   OtaEvent currentEvent;
   String _path = null;
   String alert;
+  String addalert ="";
   String result = "";
   Reponse reponse;
   bool connected;
@@ -42,6 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String qrCode1Value;
   String qrCode2Value;
   String qrCode3Value;
+  FocusNode _focusNodedluo;
   FocusNode myFocusNode;
   var qrCode1Controller = TextEditingController(text: "");
   var qTController = TextEditingController(text: "");
@@ -67,8 +71,11 @@ class _MyHomePageState extends State<MyHomePage> {
     reponse?.data?.qt = 0;
     reponse?.data?.dluo = "";
     reponse?.data?.url_pdf = "";
+    isConnected();
     _resetOnPost();
     super.initState();
+    initPlatformState();
+    _focusNodedluo =FocusNode();
     myFocusNode = FocusNode();
     myFocusNode.addListener(() {
       if (!myFocusNode.hasFocus) {
@@ -109,12 +116,13 @@ class _MyHomePageState extends State<MyHomePage> {
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
         setState(() {
           connected = true;
+          print("connecté a internet");
         });
-
       }
     } on SocketException catch (_) {
       setState(() {
         connected = false;
+        print("non connecté");
       });
     }
   }
@@ -126,6 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
     qrCode1Value ="";
     qrCode2Value="";
     qrCode3Value ="";
+    addalert = "";
   }
   // Reset les valeurs des champs Textfield(valeurs envoyées)
   void _resetOnPost() async {
@@ -140,7 +149,6 @@ class _MyHomePageState extends State<MyHomePage> {
       isLoading = false;
     });
   }
-
   // Remise à zéro des valeurs reçues (icone maison)
   void _resetDataSend() async {
     setState(() {
@@ -171,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
 
-// Cache le champ alerte au bout de 3 secondes
+// Cache le champ alerte au bout de 10 secondes
   _toggle() async {
     await new Future.delayed(const Duration(seconds : 10));
     setState(() {
@@ -196,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       // envoie les data en zpl
       socket.add(utf8.encode(l));
-      // attend 5 secondes
+      // attend 3 secondes
       await Future.delayed(Duration(seconds: 3));
 
       // .. ferme la socket
@@ -205,7 +213,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
   }
 
+  Future<void> initPlatformState() async {
+    String serialNumber;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    try {
+      serialNumber = await SerialNumber.serialNumber;
+    } on PlatformException {
+      serialNumber = 'Failed to get serial number.';
+    }
 
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
+    if (!mounted) return;
+
+    setState(() {
+      _serialNumber = serialNumber;
+    });
+  }
 
 
   // Lance l'appareil photo
@@ -324,11 +349,39 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start ,
                               children: [
+                                Visibility(
+                                  visible: _visible,
+                                  child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          addalert = "";
+                                        });
+                                      },
+                                      child: Row(children: [
+                                        Text("$addalert",
+                                          style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 17.0
+                                          )
+                                          ,),
+                                        Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical:  0),
+                                            child:
+                                            addalert != "" ?
+                                            Icon(Icons.cancel_outlined,color: Colors.red,): Text("")
+                                            )
+
+                                      ],)
+                                  ),
+                                )
+                                ,
                                 reponse?.title != null ?
                                 //Affiche le title s'il n'est pas null
                                 Html(data: "${reponse.title}",style: {
+                                  "u": Style(
+                                  fontSize: FontSize(19.0)),
                                   "div": Style(
-                                      fontSize: FontSize(14.0)
+                                      fontSize: FontSize(19.0)
                                   ),
                                 }): Container(),
                                 reponse?.show?.qr_code_001 == true || start == true ?
@@ -346,10 +399,30 @@ class _MyHomePageState extends State<MyHomePage> {
                                 reponse?.alert == null? Container() :
                                 Visibility(
                                   visible: _visible,
-                                  // Affiche l'alerte si elle n'est pas null, et la cache au bout de 3 secondes
-                                  child: Html(data :"$alert",style: {
-                                    "html": Style(color: Colors.red)
-                                  }),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _visible = false;
+                                      });
+                                      },
+                                      child:
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                  child:
+                                                  Html(
+                                                      data :"$alert",
+                                                      style: {
+                                                        "html": Style(
+                                                            color: Colors.red,
+                                                            fontSize: FontSize(18.0)
+                                                        )
+                                                      })
+                                              ),
+                                              Icon(Icons.cancel_outlined,color: Colors.red,)
+                                            ],
+                                          )
+                                        ),
                                 ),
                                 reponse?.show?.qt == true?
                                 Padding(
@@ -434,8 +507,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                               decoration: const InputDecoration(
                                                 hintText: 'dd-mm-yyyy',
                                               ),
+                                              focusNode: _focusNodedluo,
                                               controller: dluoController,
                                               keyboardType: TextInputType.datetime,
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter.allow(RegExp("[0-9-]")),
+                                                LengthLimitingTextInputFormatter(10),
+                                                _DateFormatter(),
+                                              ],
                                             ),
                                           ],
                                         )
@@ -553,210 +632,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future _makeFormPostRequest() async {
     //Lance le chargement le temps que la requete soit faite
-    setState(() {
-      isLoading = true;
-    });
-    // Si DA_NULL est renvoyé dans qr_code_001 -> Annule la saisie et reset les valeurs
-    if(reponse?.data?.qr_code_001 == "DA_NULL"){
-      String time = DateTime.now().millisecondsSinceEpoch.toString();
-      String key = "a895d407c10275cc190b01310dacdc0d";
-      String content = "$key$time";
-      String keypass = md5.convert(utf8.encode(content)).toString();
-
-
-      print(time);
-      print(keypass);
-
-      // paramètres de la requete
-      String urlEnvoi = 'https://cantalfret.proxipause.eu/qrcode.json';
-      Map<String,String> headers = {
-        'Content-type' : 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      };
-
-
-      var body ={
-        "qr_code_001":"DA_NULL",
-        "qr_code_002":"$qrCode2Value",
-        "qr_code_003": "$qrCode3Value",
-        "qt":qTController.value.text,
-        "condi":"$condi",
-        "dluo":"${dluoController.value.text}",
-        "lot":"${nLotController.value.text}",
-        "zone": "${zoneController.value.text}",
-        "confirm": "${reponse?.data?.confirm}",
-        "target":"analyse",
-        "keypass":"$keypass",
-        "keytime":"$time",
-        "nPDA":"123456789"
-      };
-
-
-      Response response = await post(urlEnvoi, headers: headers, body: body);
-      print(body);
-
-      // On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
-      if(response.body.isNotEmpty && response.statusCode == 200) {
-        Map map = jsonDecode(response.body);
-        setState(() {
-          reponse = Reponse.fromJson(map);
-          print(response.statusCode);
-          print(response.body);
-          qrCode2Value = reponse?.data?.qr_code_002;
-          qrCode3Value = reponse?.data?.qr_code_003;
-          start = false;
-          if (reponse?.show?.print == true){
-            _print();
-            _resetOnPost();
-            setState(() {
-              qrCode1Value = "";
-            });
-          }
-          if(reponse?.alert == "Code inconnu"){
-            _resetOnPost();
-            setState(() {
-              qrCode1Value = "";
-            });
-          }
-          if(reponse?.alert == false){
-            alert = "";
-            _resetOnPost();
-            setState(() {
-              qrCode1Value = "";
-            });
-          }
-          else {
-            alert = reponse?.alert;
-          }
-          setState(() {
-            isLoading =false;
-            _visible = true;
-          });
-          _resetOnPost();
-          _toggle();
-        });
-      }
-    }else{
-      // Si on envoie une photo, rajoute les champs photo et libelle a la requete
-
-      if(reponse?.show?.reserve == true){
-        // Assigne la valeur du champ qrcode1 à qrcode 1 s'il est null ou vide
-        if(qrCode1Value == null || qrCode1Value == ""|| reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
-          qrCode1Value = qrCode1Controller.value.text;
-        }
-        setState(() {
-          isLoading = true;
-        });
-        // Encodage de l'image prise par l'appareil photo avant envoi en base64
-        File imageFile = File(_path);
-        print(_path);
-        List<int> imageBytes = imageFile.readAsBytesSync();
-        String reserve = base64Encode(imageBytes);
-
-        print(reserve);
-        // Calcul de la clé et convert en md5
-        String time = DateTime.now().millisecondsSinceEpoch.toString();
-        String key = "a895d407c10275cc190b01310dacdc0d";
-        String content = "$key$time";
-        String keypass = md5.convert(utf8.encode(content)).toString();
-
-
-        print(time);
-        print(keypass);
-
-        // paramètres de la requete
-        String urlEnvoi = 'https://cantalfret.proxipause.eu/qrcode.json';
-        Map<String,String> headers = {
-          'Content-type' : 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        };
-        var body = {
-          "qr_code_001": "$qrCode1Value",
-          "qr_code_002": "$qrCode2Value",
-          "qr_code_003": "$qrCode3Value",
-          "qt": qTController.value.text,
-          "condi": "$condi",
-          "dluo": "${dluoController.value.text}",
-          "lot": "${nLotController.value.text}",
-          "zone": "${zoneController.value.text}",
-          "libelle_reserve": "${motifController.value.text}",
-          "confirm": "${reponse?.data?.confirm}",
-          "target": "analyse",
-          "keypass": "$keypass",
-          "keytime" : "$time",
-          "nPDA":"123456789",
-          "base64" : reserve,
-        };
-
-
-        Response response = await post(urlEnvoi, headers: headers, body: body);
-        print(body);
-
-        // Si l'envoi a été fait, On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
-        if(response.body.isNotEmpty && response.statusCode == 200) {
-          Map map = jsonDecode(response.body);
-          setState(() {
-            reponse = Reponse.fromJson(map);
-            print(response.statusCode);
-            print(response.body);
-            // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
-            qrCode2Value = reponse?.data?.qr_code_002;
-            qrCode3Value = reponse?.data?.qr_code_003;
-
-            if (reponse?.show?.print == true){
-              // si l'impression est demandée, imprime, et reset les valeurs
-              _print();
-              _resetOnPost();
-              setState(() {
-                qrCode1Value = "";
-              });
-            }
-            if(reponse?.alert == "Code inconnu"){
-              // si l'alerte est Code inconnu, reset les valeurs
-              _resetOnPost();
-              setState(() {
-                qrCode1Value = "";
-              });
-            }
-            if(reponse?.show?.reserve == false){
-              setState(() {
-                reserve ="";
-                _path =null;
-                isLoading =false;
-              });
-            }
-            if(reponse?.alert == false){
-              // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
-              alert = "";
-            }
-            else {
-              // sinon, renvoie l'alert reçue dans son controller pour l'afficher
-              alert = reponse?.alert;
-            }
-            // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
-            setState(() {
-              reserve = "";
-              qrCode1Value = reponse?.data?.qr_code_001;
-              if(reponse?.data?.qt == 0){
-                qTController = TextEditingController(text: "");
-              }
-              _visible = true;
-              isLoading = false;
-            });
-            _resetOnPost();
-            _toggle();
-          });
-        }
-
-      }else{
-        if(qrCode1Value == null || qrCode1Value == "" || reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
-          qrCode1Value = qrCode1Controller.value.text;
-        }
-        setState(() {
-          isLoading = true;
-        });
-        // Si on n'envoie pas de photo
-        // Calcul de la clé et convert en md5
+    isConnected();
+    if(connected == false){
+      _resetDataSend();
+      _resetOnPost();
+      setState(() {
+        isLoading = false;
+      });
+    }
+    else{
+      setState(() {
+        isLoading = true;
+      });
+      // Si DA_NULL est renvoyé dans qr_code_001 -> Annule la saisie et reset les valeurs
+      if(reponse?.data?.qr_code_001 == "DA_NULL"){
         String time = DateTime.now().millisecondsSinceEpoch.toString();
         String key = "a895d407c10275cc190b01310dacdc0d";
         String content = "$key$time";
@@ -774,7 +663,8 @@ class _MyHomePageState extends State<MyHomePage> {
         };
 
 
-        var body ={"qr_code_001":"$qrCode1Value",
+        var body ={
+          "qr_code_001":"DA_NULL",
           "qr_code_002":"$qrCode2Value",
           "qr_code_003": "$qrCode3Value",
           "qt":qTController.value.text,
@@ -786,73 +676,374 @@ class _MyHomePageState extends State<MyHomePage> {
           "target":"analyse",
           "keypass":"$keypass",
           "keytime":"$time",
-          "nPDA":"123456789"
+          "nPDA":"$_serialNumber"
         };
 
 
         Response response = await post(urlEnvoi, headers: headers, body: body);
         print(body);
 
-        // Si l'envoi a été fait, On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
+        // On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
         if(response.body.isNotEmpty && response.statusCode == 200) {
+          Timer timer = new Timer(new Duration(seconds: 5), () {
+            setState(() {
+              isLoading = false;
+              addalert = "Temps d'attente trop long";
+            });
+          });
           Map map = jsonDecode(response.body);
           setState(() {
             reponse = Reponse.fromJson(map);
             print(response.statusCode);
             print(response.body);
-            print(reponse.data);
-            // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
             qrCode2Value = reponse?.data?.qr_code_002;
             qrCode3Value = reponse?.data?.qr_code_003;
-            title = """${reponse.title}""";
             start = false;
-            if(reponse?.title == ""){
-              _resetOnPost();
-              setState(() {
-                qrCode1Value = "";
-              });
-            }
-            if(reponse?.alert == "Code inconnu"){
-              // si l'alerte est Code inconnu, reset les valeurs
-              _resetOnPost();
-              setState(() {
-                qrCode1Value = "";
-              });
-            }
             if (reponse?.show?.print == true){
-              // si l'impression est demandée, imprime, et reset les valeurs
               _print();
               _resetOnPost();
               setState(() {
                 qrCode1Value = "";
               });
             }
-            // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
+            if(reponse?.alert == "Code inconnu"){
+              _resetOnPost();
+              setState(() {
+                qrCode1Value = "";
+              });
+            }
             if(reponse?.alert == false){
               alert = "";
               _resetOnPost();
+              setState(() {
+                qrCode1Value = "";
+              });
             }
             else {
-              // sinon, renvoie l'alert reçue dans son controller pour l'afficher
               alert = reponse?.alert;
-              _resetOnPost();
             }
-            // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
             setState(() {
-              if(reponse?.data?.qt == 0){
-                qTController = TextEditingController(text: "");
-              }
+              isLoading =false;
+              timer.cancel();
               _visible = true;
-              isLoading = false;
-                qrCode1Value = reponse?.data?.qr_code_001;
             });
             _resetOnPost();
-            _toggle();
           });
+        }
+      }else{
+        // Si on envoie une photo, rajoute les champs photo et libelle a la requete
+
+        if(reponse?.show?.reserve == true){
+          // Assigne la valeur du champ qrcode1 à qrcode 1 s'il est null ou vide
+          if(qrCode1Value == null || qrCode1Value == ""|| reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
+            qrCode1Value = qrCode1Controller.value.text;
+          }
+          Timer timer = new Timer(new Duration(seconds: 5), () {
+            setState(() {
+              isLoading = false;
+              addalert = "Temps d'attente trop long";
+            });
+          });
+          // Encodage de l'image prise par l'appareil photo avant envoi en base64
+          File imageFile = File(_path);
+          print(_path);
+          List<int> imageBytes = imageFile.readAsBytesSync();
+          String reserve = base64Encode(imageBytes);
+
+          print(reserve);
+          // Calcul de la clé et convert en md5
+          String time = DateTime.now().millisecondsSinceEpoch.toString();
+          String key = "a895d407c10275cc190b01310dacdc0d";
+          String content = "$key$time";
+          String keypass = md5.convert(utf8.encode(content)).toString();
+
+
+          print(time);
+          print(keypass);
+
+          // paramètres de la requete
+          String urlEnvoi = 'https://cantalfret.proxipause.eu/qrcode.json';
+          Map<String,String> headers = {
+            'Content-type' : 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+          };
+          var body = {
+            "qr_code_001": "$qrCode1Value",
+            "qr_code_002": "$qrCode2Value",
+            "qr_code_003": "$qrCode3Value",
+            "qt": qTController.value.text,
+            "condi": "$condi",
+            "dluo": "${dluoController.value.text}",
+            "lot": "${nLotController.value.text}",
+            "zone": "${zoneController.value.text}",
+            "libelle_reserve": "${motifController.value.text}",
+            "confirm": "${reponse?.data?.confirm}",
+            "target": "analyse",
+            "keypass": "$keypass",
+            "keytime" : "$time",
+            "nPDA":"$_serialNumber",
+            "base64" : reserve,
+          };
+
+
+          Response response = await post(urlEnvoi, headers: headers, body: body);
+          print(body);
+
+          // Si l'envoi a été fait, On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
+          if(response.body.isNotEmpty && response.statusCode == 200) {
+            Map map = jsonDecode(response.body);
+            setState(() {
+              reponse = Reponse.fromJson(map);
+              print(response.statusCode);
+              print(response.body);
+              // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
+              qrCode2Value = reponse?.data?.qr_code_002;
+              qrCode3Value = reponse?.data?.qr_code_003;
+
+              if (reponse?.show?.print == true){
+                // si l'impression est demandée, imprime, et reset les valeurs
+                _print();
+                _resetOnPost();
+                setState(() {
+                  qrCode1Value = "";
+                });
+              }
+              if(reponse?.alert == "Code inconnu"){
+                // si l'alerte est Code inconnu, reset les valeurs
+                _resetOnPost();
+                setState(() {
+                  qrCode1Value = "";
+                });
+              }
+              if(reponse?.show?.reserve == false){
+                setState(() {
+                  reserve ="";
+                  _path =null;
+                  isLoading =false;
+                  timer.cancel();
+                });
+              }
+              if(reponse?.alert == false){
+                // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
+                alert = "";
+              }
+              else {
+                // sinon, renvoie l'alert reçue dans son controller pour l'afficher
+                alert = reponse?.alert;
+              }
+              // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
+              setState(() {
+                reserve = "";
+                qrCode1Value = reponse?.data?.qr_code_001;
+                if(reponse?.data?.qt == 0){
+                  qTController = TextEditingController(text: "");
+                }
+                _visible = true;
+                isLoading = false;
+                timer.cancel();
+              });
+              _resetOnPost();
+            });
+          }
+
+        }else{
+          if(qrCode1Value == null || qrCode1Value == "" || reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
+            qrCode1Value = qrCode1Controller.value.text;
+          }
+          Timer timer = new Timer(new Duration(seconds: 5), () {
+            setState(() {
+              isLoading = false;
+              addalert = "Temps d'attente trop long";
+            });
+          });
+          // Si on n'envoie pas de photo
+          // Calcul de la clé et convert en md5
+          String time = DateTime.now().millisecondsSinceEpoch.toString();
+          String key = "a895d407c10275cc190b01310dacdc0d";
+          String content = "$key$time";
+          String keypass = md5.convert(utf8.encode(content)).toString();
+
+
+          print(time);
+          print(keypass);
+
+          // paramètres de la requete
+          String urlEnvoi = 'https://cantalfret.proxipause.eu/qrcode.json';
+          Map<String,String> headers = {
+            'Content-type' : 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+          };
+
+
+          var body ={"qr_code_001":"$qrCode1Value",
+            "qr_code_002":"$qrCode2Value",
+            "qr_code_003": "$qrCode3Value",
+            "qt":qTController.value.text,
+            "condi":"$condi",
+            "dluo":"${dluoController.value.text}",
+            "lot":"${nLotController.value.text}",
+            "zone": "${zoneController.value.text}",
+            "confirm": "${reponse?.data?.confirm}",
+            "target":"analyse",
+            "keypass":"$keypass",
+            "keytime":"$time",
+            "nPDA":"$_serialNumber"
+          };
+
+
+          Response response = await post(urlEnvoi, headers: headers, body: body);
+          print(body);
+
+          // Si l'envoi a été fait, On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
+          if(response.body.isNotEmpty && response.statusCode == 200) {
+            Map map = jsonDecode(response.body);
+            setState(() {
+              reponse = Reponse.fromJson(map);
+              print(response.statusCode);
+              print(response.body);
+              print(reponse.data);
+              // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
+              qrCode2Value = reponse?.data?.qr_code_002;
+              qrCode3Value = reponse?.data?.qr_code_003;
+              title = """${reponse.title}""";
+              start = false;
+              if(reponse?.title == ""){
+                _resetOnPost();
+                setState(() {
+                  qrCode1Value = "";
+                });
+              }
+              if(reponse?.alert == "Code inconnu"){
+                // si l'alerte est Code inconnu, reset les valeurs
+                _resetOnPost();
+                setState(() {
+                  qrCode1Value = "";
+                });
+              }
+              if (reponse?.show?.print == true){
+                // si l'impression est demandée, imprime, et reset les valeurs
+                _print();
+                _resetOnPost();
+                setState(() {
+                  qrCode1Value = "";
+                });
+              }
+              // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
+              if(reponse?.alert == false){
+                alert = "";
+                _resetOnPost();
+              }
+              else {
+                // sinon, renvoie l'alert reçue dans son controller pour l'afficher
+                alert = reponse?.alert;
+                _resetOnPost();
+              }
+              // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
+              setState(() {
+                if(reponse?.data?.qt == 0){
+                  qTController = TextEditingController(text: "");
+                }
+                _visible = true;
+                isLoading = false;
+                timer.cancel();
+                qrCode1Value = reponse?.data?.qr_code_001;
+              });
+              _resetOnPost();
+            });
+          }
         }
       }
     }
+    }
+  }
+
+class _DateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue prevText, TextEditingValue currText) {
+    int selectionIndex;
+
+    // Get the previous and current input strings
+    String pText = prevText.text;
+    String cText = currText.text;
+    // Abbreviate lengths
+    int cLen = cText.length;
+    int pLen = pText.length;
+
+    if (cLen == 1) {
+      // Can only be 0, 1, 2 or 3
+      if (int.parse(cText) > 3) {
+        // Remove char
+        cText = '';
+      }
+    } else if (cLen == 2 && pLen == 1) {
+      // Days cannot be greater than 31
+      int dd = int.parse(cText.substring(0, 2));
+      if (dd == 0 || dd > 31) {
+        // Remove char
+        cText = cText.substring(0, 1);
+      } else {
+        // Add a - char
+        cText += '-';
+      }
+    } else if (cLen == 4) {
+      // Can only be 0 or 1
+      if (int.parse(cText.substring(3, 4)) > 1) {
+        // Remove char
+        cText = cText.substring(0, 3);
+      }
+    } else if (cLen == 5 && pLen == 4) {
+      // Month cannot be greater than 12
+      int mm = int.parse(cText.substring(3, 5));
+      if (mm == 0 || mm > 12) {
+        // Remove char
+        cText = cText.substring(0, 4);
+      } else {
+        // Add a - char
+        cText += '-';
+      }
+    } else if ((cLen == 3 && pLen == 4) || (cLen == 6 && pLen == 7)) {
+      // Remove - char
+      cText = cText.substring(0, cText.length - 1);
+    } else if (cLen == 3 && pLen == 2) {
+      if (int.parse(cText.substring(2, 3)) > 1) {
+        // Replace char
+        cText = cText.substring(0, 2) + '-';
+      } else {
+        // Insert - char
+        cText =
+            cText.substring(0, pLen) + '-' + cText.substring(pLen, pLen + 1);
+      }
+    } else if (cLen == 6 && pLen == 5) {
+      // Can only be 1 or 2 - if so insert a - char
+      int y1 = int.parse(cText.substring(5, 6));
+      if (y1 < 1 || y1 > 2) {
+        // Replace char
+        cText = cText.substring(0, 5) + '-';
+      } else {
+        // Insert - char
+        cText = cText.substring(0, 5) + '-' + cText.substring(5, 6);
+      }
+    } else if (cLen == 7) {
+      // Can only be 1 or 2
+      int y1 = int.parse(cText.substring(6, 7));
+      if (y1 < 1 || y1 > 2) {
+        // Remove char
+        cText = cText.substring(0, 6);
+      }
+    } else if (cLen == 8) {
+      // Can only be 19 or 20
+      int y2 = int.parse(cText.substring(6, 8));
+      if (y2 < 19 || y2 > 20) {
+        // Remove char
+        cText = cText.substring(0, 7);
+      }
+    }
+
+    selectionIndex = cText.length;
+    return TextEditingValue(
+      text: cText,
+      selection: TextSelection.collapsed(offset: selectionIndex),
+    );
   }
 }
-
-
