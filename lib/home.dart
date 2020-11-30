@@ -419,7 +419,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                                         )
                                                       })
                                               ),
-                                              Icon(Icons.cancel_outlined,color: Colors.red,)
+                                              alert != ""?
+                                              Icon(Icons.cancel_outlined,color: Colors.red) : Text(""),
                                             ],
                                           )
                                         ),
@@ -447,7 +448,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                           return null;
                                         },
                                         keyboardType: TextInputType.numberWithOptions(signed: true,decimal: false),
-                                        controller: qTController, // Only numbers can be entered// ,
+                                        controller: qTController,
+                                          textInputAction: TextInputAction.next,
+                                          onEditingComplete: () => FocusScope.of(context).nextFocus()// Only numbers can be entered// ,
                                       ),
                                     ),
                                     // Champ contenant la condi
@@ -510,6 +513,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                               focusNode: _focusNodedluo,
                                               controller: dluoController,
                                               keyboardType: TextInputType.datetime,
+                                              textInputAction: TextInputAction.next,
+                                              onEditingComplete: () => FocusScope.of(context).nextFocus(),
                                               inputFormatters: [
                                                 FilteringTextInputFormatter.allow(RegExp("[0-9-]")),
                                                 LengthLimitingTextInputFormatter(10),
@@ -543,6 +548,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                               ),
                                               controller: nLotController,
                                               keyboardType: TextInputType.visiblePassword,
+                                                textInputAction: TextInputAction.next,
+                                                onEditingComplete: () => FocusScope.of(context).nextFocus()
                                             ),
                                           ],
                                         )
