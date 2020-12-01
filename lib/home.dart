@@ -17,7 +17,8 @@ import 'package:ota_update/ota_update.dart';
 import 'package:flutter_socket_io/flutter_socket_io.dart';
 import 'package:flutter_socket_io/socket_io_manager.dart';
 import 'package:serial_number/serial_number.dart';
-
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_esc_printer/flutter_esc_printer.dart';
 
 
 class MyHomePage extends StatefulWidget {
@@ -87,6 +88,31 @@ class _MyHomePageState extends State<MyHomePage> {
     start = true;
   }
 
+  _launchURL() async {
+    const url = 'http://www.archeonavale.org/pdf/cordeliere/test.pdf';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  // Impression Bluetooth
+  _blueprint() async {
+    List<String> printList = reponse?.data?.zebra?.zpl;
+
+    for (var l in printList) {
+      const PaperSize paper = PaperSize.mm80;
+      PrinterBluetoothManager _printerBluetoothManager = PrinterBluetoothManager();
+      _printerBluetoothManager.selectPrinter("AC:3F:A4:DD:B1:65");
+      final Ticket ticket = Ticket(paper);
+
+      ticket.text(l);
+
+      final res = await _printerBluetoothManager.printTicket(ticket);
+      await Future.delayed(Duration(seconds: 3));
+    }
+  }
 // Met a jour l'application, necessite de mettre a jour le fichier app-release.apk
   // pour cela créer un build de l'apk dans Build -> Flutter -> Build APK
   // l'apk se trouve dans le dossier de l'application Dossier\build\app\outputs\flutter-apk
@@ -230,6 +256,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _serialNumber = serialNumber;
     });
+    print(_serialNumber);
   }
 
 
@@ -284,18 +311,43 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 _reset();
               },
-            ),
-            centerTitle: true,
-            actions: <Widget>[
-              // Lance la mise à jour de l'application en arrière plan, puis l'installation
-              IconButton(
-                icon: const Icon(Icons.update),
-                tooltip: 'Mise a jour',
-                onPressed: () {
-                  tryOtaUpdate();
+            ),),
+        endDrawer: Drawer(
+          child:
+          ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                  child:
+                  Text('Menu',style: TextStyle(color: Colors.white),),
+              decoration: BoxDecoration(
+                color: Colors.deepPurpleAccent
+              ),
+              ),
+              ListTile(
+                leading: Icon(Icons.content_paste),
+                title: Text('Inventaire'),
+                onTap: (){
+                  _launchURL();
                 },
               ),
-            ]),
+              ListTile(
+                leading: Icon(Icons.content_paste),
+                title: Text('Test'),
+                onTap: (){
+                  _blueprint();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.file_download),
+                title: Text('Mise à jour'),
+                onTap: (){
+                  tryOtaUpdate();
+                },
+              )
+            ],
+          ),
+        ),
         //AlertDialogue pour quitter l'appli
         body:WillPopScope(
             onWillPop: _onWillPop,
