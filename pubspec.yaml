@@ -37,7 +37,7 @@ dev_dependencies:
   url_launcher: ^5.7.10
   path_provider: ^1.6.18
   image_picker: ^0.6.7+11
-  camera: ^0.5.8+7
+  camera: ^0.5.8+11
   crypto: ^2.1.5
   printing: ^3.6.1
   ota_update: ^2.4.1

@@ -104,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var l in printList) {
       const PaperSize paper = PaperSize.mm80;
       PrinterBluetoothManager _printerBluetoothManager = PrinterBluetoothManager();
-      _printerBluetoothManager.selectPrinter("AC:3F:A4:DD:B1:65");
+      _printerBluetoothManager.selectPrinter("${reponse?.data?.zebra?.ipPrint}");
       final Ticket ticket = Ticket(paper);
 
       ticket.text(l);
@@ -759,7 +759,7 @@ class _MyHomePageState extends State<MyHomePage> {
             qrCode3Value = reponse?.data?.qr_code_003;
             start = false;
             if (reponse?.show?.print == true){
-              _print();
+              _blueprint();
               _resetOnPost();
               setState(() {
                 qrCode1Value = "";
@@ -861,7 +861,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
               if (reponse?.show?.print == true){
                 // si l'impression est demandée, imprime, et reset les valeurs
-                _print();
+                _blueprint();
                 _resetOnPost();
                 setState(() {
                   qrCode1Value = "";
@@ -981,7 +981,7 @@ class _MyHomePageState extends State<MyHomePage> {
               }
               if (reponse?.show?.print == true){
                 // si l'impression est demandée, imprime, et reset les valeurs
-                _print();
+                _blueprint();
                 _resetOnPost();
                 setState(() {
                   qrCode1Value = "";
