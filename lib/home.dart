@@ -67,11 +67,16 @@ class _MyHomePageState extends State<MyHomePage> {
     reponse?.data?.qr_code_002 = "";
     reponse?.data?.qr_code_003 = "";
     reponse?.data?.confirm = 0;
-    reponse?.data?.condi = 3;
+    reponse?.data?.condi = "";
     reponse?.data?.zone = "";
     reponse?.data?.qt = 0;
     reponse?.data?.dluo = "";
     reponse?.data?.url_pdf = "";
+    if (reponse?.data?.condi == 2 || reponse?.data?.condi == 3 || reponse?.data?.condi == 5){
+      setState(() {
+        condi = reponse?.data?.condi;
+      });
+    }
     isConnected();
     _resetOnPost();
     super.initState();
@@ -156,11 +161,14 @@ class _MyHomePageState extends State<MyHomePage> {
   void _reset() {
     _resetOnPost();
     _resetDataSend();
-    qTController = TextEditingController(text: "");
-    qrCode1Value ="";
-    qrCode2Value="";
-    qrCode3Value ="";
-    addalert = "";
+    setState(() {
+      qTController = TextEditingController(text: "");
+      qrCode1Value ="";
+      qrCode2Value="";
+      qrCode3Value ="";
+      addalert = "";
+      alert = "";
+    });
   }
   // Reset les valeurs des champs Textfield(valeurs envoyées)
   void _resetOnPost() async {
@@ -185,7 +193,7 @@ class _MyHomePageState extends State<MyHomePage> {
       reponse?.data?.qr_code_002 = "";
       reponse?.data?.qr_code_003 = "";
       reponse?.data?.confirm = 0;
-      reponse?.data?.condi = 3;
+      reponse?.data?.condi = "";
       reponse?.data?.zone = "";
       reponse?.data?.dluo = "";
       reponse?.data?.url_pdf = "";
@@ -300,7 +308,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // Structure de l'appli
   @override
   Widget build(BuildContext context) {
-
+    Future.delayed(const Duration(), () => SystemChannels.textInput.invokeMethod('TextInput.hide'));
     return Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
@@ -397,7 +405,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         Center(
                           child:
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 30.0, vertical:  30.0),
+                            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical:  10.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start ,
                               children: [
@@ -755,6 +763,23 @@ class _MyHomePageState extends State<MyHomePage> {
             reponse = Reponse.fromJson(map);
             print(response.statusCode);
             print(response.body);
+            if(reponse?.data?.condi != null){
+              if(reponse?.data?.condi == "3"){
+                setState(() {
+                  condi = 3;
+                });
+              }
+              if(reponse?.data?.condi == "2"){
+                setState(() {
+                  condi = 2;
+                });
+              }
+              if(reponse?.data?.condi == "5"){
+                setState(() {
+                  condi = 5;
+                });
+              }
+            }
             qrCode2Value = reponse?.data?.qr_code_002;
             qrCode3Value = reponse?.data?.qr_code_003;
             start = false;
@@ -780,6 +805,7 @@ class _MyHomePageState extends State<MyHomePage> {
             }
             else {
               alert = reponse?.alert;
+              timer.cancel();
             }
             setState(() {
               isLoading =false;
@@ -787,6 +813,7 @@ class _MyHomePageState extends State<MyHomePage> {
               _visible = true;
             });
             _resetOnPost();
+            timer.cancel();
           });
         }
       }else{
@@ -856,6 +883,23 @@ class _MyHomePageState extends State<MyHomePage> {
               print(response.statusCode);
               print(response.body);
               // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
+              if(reponse?.data?.condi != null){
+                if(reponse?.data?.condi == "3"){
+                  setState(() {
+                    condi = 3;
+                  });
+                }
+                if(reponse?.data?.condi == "2"){
+                  setState(() {
+                    condi = 2;
+                  });
+                }
+                if(reponse?.data?.condi == "5"){
+                  setState(() {
+                    condi = 5;
+                  });
+                }
+              }
               qrCode2Value = reponse?.data?.qr_code_002;
               qrCode3Value = reponse?.data?.qr_code_003;
 
@@ -885,14 +929,17 @@ class _MyHomePageState extends State<MyHomePage> {
               if(reponse?.alert == false){
                 // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
                 alert = "";
+                timer.cancel();
               }
               else {
                 // sinon, renvoie l'alert reçue dans son controller pour l'afficher
                 alert = reponse?.alert;
+                timer.cancel();
               }
               // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
               setState(() {
                 reserve = "";
+                reponse?.data?.condi != null ? condi = reponse?.data?.condi : condi = 3;
                 qrCode1Value = reponse?.data?.qr_code_001;
                 if(reponse?.data?.qt == 0){
                   qTController = TextEditingController(text: "");
@@ -902,6 +949,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 timer.cancel();
               });
               _resetOnPost();
+              timer.cancel();
             });
           }
 
@@ -961,6 +1009,23 @@ class _MyHomePageState extends State<MyHomePage> {
               print(response.statusCode);
               print(response.body);
               print(reponse.data);
+              if(reponse?.data?.condi != null){
+                if(reponse?.data?.condi == "3"){
+                  setState(() {
+                    condi = 3;
+                  });
+                }
+                if(reponse?.data?.condi == "2"){
+                  setState(() {
+                    condi = 2;
+                  });
+                }
+                if(reponse?.data?.condi == "5"){
+                  setState(() {
+                    condi = 5;
+                  });
+                }
+              }
               // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
               qrCode2Value = reponse?.data?.qr_code_002;
               qrCode3Value = reponse?.data?.qr_code_003;
@@ -977,6 +1042,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _resetOnPost();
                 setState(() {
                   qrCode1Value = "";
+                  timer.cancel();
                 });
               }
               if (reponse?.show?.print == true){
@@ -985,17 +1051,20 @@ class _MyHomePageState extends State<MyHomePage> {
                 _resetOnPost();
                 setState(() {
                   qrCode1Value = "";
+                  timer.cancel();
                 });
               }
               // Si l'alert == false, retourne une string vide a la place (gere les erreurs d'affichage de flutter)
               if(reponse?.alert == false){
                 alert = "";
                 _resetOnPost();
+                timer.cancel();
               }
               else {
                 // sinon, renvoie l'alert reçue dans son controller pour l'afficher
                 alert = reponse?.alert;
                 _resetOnPost();
+                timer.cancel();
               }
               // arrete le chargement, affiche l'alert pendant 3 secondes puis le cache, reset les valeurs
               setState(() {
@@ -1005,8 +1074,26 @@ class _MyHomePageState extends State<MyHomePage> {
                 _visible = true;
                 isLoading = false;
                 timer.cancel();
+                if(reponse?.data?.condi != null){
+                  if(reponse?.data?.condi == "3"){
+                    setState(() {
+                      condi = 3;
+                    });
+                  }
+                  if(reponse?.data?.condi == "2"){
+                    setState(() {
+                      condi = 2;
+                    });
+                  }
+                  if(reponse?.data?.condi == "5"){
+                    setState(() {
+                      condi = 5;
+                    });
+                  }
+                }
                 qrCode1Value = reponse?.data?.qr_code_001;
               });
+              timer.cancel();
               _resetOnPost();
             });
           }
