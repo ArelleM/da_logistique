@@ -42,6 +42,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool connected;
   bool start;
   var title;
+  String reserve = "";
+  var resetCount = 0;
   bool _visible = true;
   String qrCode1Value;
   String qrCode2Value;
@@ -92,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     start = true;
   }
+
 
   _launchURL() async {
     const url = 'http://www.archeonavale.org/pdf/cordeliere/test.pdf';
@@ -211,7 +214,18 @@ class _MyHomePageState extends State<MyHomePage> {
       _path = null;
     });
   }
-
+  _miseEnReserve(){
+    setState(() {
+      qrCode1Controller = TextEditingController(text: "DA_OUT-0000");
+    });
+    _makeFormPostRequest();
+  }
+  _test(){
+    setState(() {
+      qrCode1Value = "DA_TESTP-0000";
+    });
+    _makeFormPostRequest();
+  }
 
 // Cache le champ alerte au bout de 10 secondes
   _toggle() async {
@@ -334,16 +348,18 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               ListTile(
                 leading: Icon(Icons.content_paste),
-                title: Text('Inventaire'),
+                title: Text('Mise en réserve'),
                 onTap: (){
-                  _launchURL();
+                  _miseEnReserve();
+                  Navigator.of(context).pop();
                 },
               ),
               ListTile(
                 leading: Icon(Icons.content_paste),
                 title: Text('Test'),
                 onTap: (){
-                  _blueprint();
+                  _test();
+                  Navigator.of(context).pop();
                 },
               ),
               ListTile(
@@ -351,6 +367,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 title: Text('Mise à jour'),
                 onTap: (){
                   tryOtaUpdate();
+                  Navigator.of(context).pop();
                 },
               )
             ],
@@ -400,6 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     :Form(
                     key: _formKey,
                     child: ListView(
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                       shrinkWrap: true,
                       children: [
                         Center(
@@ -444,6 +462,48 @@ class _MyHomePageState extends State<MyHomePage> {
                                       fontSize: FontSize(19.0)
                                   ),
                                 }): Container(),
+                                Padding(
+                                    padding: EdgeInsets.only(top: 5.0),
+                                    child: ListView(
+                                      shrinkWrap: true,
+                                      children: [
+                                        // Affiche l'image si _path n'est pas null
+                                        _path == null ? Container() :
+                                            Container(height: 200,
+                                                width: 200,
+                                                child: Image.file(File(_path))
+                                            )
+                                        ,
+                                        // Si _path est null et qu'une photo est demandée, bouton qui déclenche l'appareil photo -> take_picture.dart
+                                        _path == null && reponse?.show?.reserve == true?
+                                        RaisedButton(
+                                          color: Colors.deepPurpleAccent,
+                                          onPressed: () {
+                                            _showCamera();
+                                          },
+                                          child: Text('Prendre une photo',
+                                            style: TextStyle(
+                                                color: Colors.white
+                                            ),
+                                          ),
+                                        ) : Container(),
+                                        reponse?.show?.reserve == true?
+                                        // Champ pour le motif/Libelle de la photo
+                                        TextFormField(
+                                          autofocus: true,
+                                          decoration: const InputDecoration(
+                                            hintText: 'Motif',
+                                          ),
+                                          validator: (value) {
+                                            if (value.isEmpty) {
+                                              return 'Complétez le motif de la photo';
+                                            }
+                                            return null;
+                                          },
+                                          controller: motifController,
+                                        ) : Container() ,
+                                      ],)
+                                ),
                                 reponse?.show?.qr_code_001 == true || start == true ?
                                 //Affiche le champ qr_code_001 en auto focus, et écoute le changement de focus pour la validation du scan
                                 TextFormField(
@@ -631,45 +691,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                     return null;
                                   },
                                 ) : Container(),
-                                Padding(
-                                    padding: EdgeInsets.only(top: 5.0),
-                                    child: ListView(
-                                      shrinkWrap: true,
-                                      children: [
-                                        // Affiche l'image si _path n'est pas null
-                                        _path == null ? Container() :
-                                        Image.file(File(_path))
-                                        ,
-                                        // Si _path est null et qu'une photo est demandée, bouton qui déclenche l'appareil photo -> take_picture.dart
-                                        _path == null && reponse?.show?.reserve == true?
-                                        RaisedButton(
-                                          color: Colors.deepPurpleAccent,
-                                          onPressed: () {
-                                            _showCamera();
-                                          },
-                                          child: Text('Prendre une photo',
-                                            style: TextStyle(
-                                                color: Colors.white
-                                            ),
-                                          ),
-                                        ) : Container(),
-                                        reponse?.show?.reserve == true?
-                                        // Champ pour le motif/Libelle de la photo
-                                        TextFormField(
-                                          autofocus: true,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Motif',
-                                          ),
-                                          validator: (value) {
-                                            if (value.isEmpty) {
-                                              return 'Complétez le motif de la photo';
-                                            }
-                                            return null;
-                                          },
-                                          controller: motifController,
-                                        ) : Container() ,
-                                      ],)
-                                ),
                                 reponse?.show?.submit == true?
                                 //Bouton submit pour les champs qui en ont besoin
                                 Padding(
@@ -752,10 +773,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
         // On récupère le json que l'on décode sous forme de map pour pouvoir l'afficher
         if(response.body.isNotEmpty && response.statusCode == 200) {
-          Timer timer = new Timer(new Duration(seconds: 5), () {
+          Timer timer = new Timer(new Duration(seconds: 5), () async {
             setState(() {
               isLoading = false;
               addalert = "Temps d'attente trop long";
+            });
+            await Future.delayed(Duration(seconds: 5));
+            setState(() {
+              addalert = "";
             });
           });
           Map map = jsonDecode(response.body);
@@ -764,17 +789,17 @@ class _MyHomePageState extends State<MyHomePage> {
             print(response.statusCode);
             print(response.body);
             if(reponse?.data?.condi != null){
-              if(reponse?.data?.condi == "3"){
+              if(reponse?.data?.condi == "3" || reponse?.data?.condi == 3){
                 setState(() {
                   condi = 3;
                 });
               }
-              if(reponse?.data?.condi == "2"){
+              if(reponse?.data?.condi == "2" || reponse?.data?.condi == 2){
                 setState(() {
                   condi = 2;
                 });
               }
-              if(reponse?.data?.condi == "5"){
+              if(reponse?.data?.condi == "5" || reponse?.data?.condi == 5){
                 setState(() {
                   condi = 5;
                 });
@@ -795,6 +820,10 @@ class _MyHomePageState extends State<MyHomePage> {
               setState(() {
                 qrCode1Value = "";
               });
+              if (resetCount == 0) {
+                _reset();
+                resetCount++;
+              }
             }
             if(reponse?.alert == false){
               alert = "";
@@ -824,17 +853,30 @@ class _MyHomePageState extends State<MyHomePage> {
           if(qrCode1Value == null || qrCode1Value == ""|| reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
             qrCode1Value = qrCode1Controller.value.text;
           }
-          Timer timer = new Timer(new Duration(seconds: 5), () {
+          Timer timer = new Timer(new Duration(seconds: 5), () async {
             setState(() {
               isLoading = false;
               addalert = "Temps d'attente trop long";
             });
+            await Future.delayed(Duration(seconds: 5));
+            setState(() {
+              addalert = "";
+            });
           });
+          if(_path == null) {
+            setState(() {
+              reserve = "";
+            });
+          }if(_path != null){
+            setState(() {
+              File imageFile = File(_path);
+              print(_path);
+              List<int> imageBytes = imageFile.readAsBytesSync();
+              reserve = base64Encode(imageBytes);
+            });
+          }
           // Encodage de l'image prise par l'appareil photo avant envoi en base64
-          File imageFile = File(_path);
-          print(_path);
-          List<int> imageBytes = imageFile.readAsBytesSync();
-          String reserve = base64Encode(imageBytes);
+
 
           print(reserve);
           // Calcul de la clé et convert en md5
@@ -882,19 +924,25 @@ class _MyHomePageState extends State<MyHomePage> {
               reponse = Reponse.fromJson(map);
               print(response.statusCode);
               print(response.body);
+              if( reserve == ""){
+                setState(() {
+                  addalert = "Prendre une photo pour continuer";
+                });
+                timer.cancel();
+              }
               // on stocke la réponse qrcode002 dans une variable pour la garder en mémoire et pouvoir la renvoyer
               if(reponse?.data?.condi != null){
-                if(reponse?.data?.condi == "3"){
+                if(reponse?.data?.condi == "3" || reponse?.data?.condi == 3){
                   setState(() {
                     condi = 3;
                   });
                 }
-                if(reponse?.data?.condi == "2"){
+                if(reponse?.data?.condi == "2" || reponse?.data?.condi == 2){
                   setState(() {
                     condi = 2;
                   });
                 }
-                if(reponse?.data?.condi == "5"){
+                if(reponse?.data?.condi == "5" || reponse?.data?.condi == 5){
                   setState(() {
                     condi = 5;
                   });
@@ -903,7 +951,7 @@ class _MyHomePageState extends State<MyHomePage> {
               qrCode2Value = reponse?.data?.qr_code_002;
               qrCode3Value = reponse?.data?.qr_code_003;
 
-              if (reponse?.show?.print == true){
+              if (reponse?.show?.print == true && reserve != ""){
                 // si l'impression est demandée, imprime, et reset les valeurs
                 _blueprint();
                 _resetOnPost();
@@ -917,6 +965,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState(() {
                   qrCode1Value = "";
                 });
+                if (resetCount == 0) {
+                  _reset();
+                  resetCount++;
+                }
+
               }
               if(reponse?.show?.reserve == false){
                 setState(() {
@@ -957,10 +1010,14 @@ class _MyHomePageState extends State<MyHomePage> {
           if(qrCode1Value == null || qrCode1Value == "" || reponse?.alert == "Scanner la palette de stockage" || reponse?.alert == "Appel des produits "){
             qrCode1Value = qrCode1Controller.value.text;
           }
-          Timer timer = new Timer(new Duration(seconds: 5), () {
+          Timer timer = new Timer(new Duration(seconds: 5), () async {
             setState(() {
               isLoading = false;
               addalert = "Temps d'attente trop long";
+            });
+            await Future.delayed(Duration(seconds: 5));
+            setState(() {
+              addalert = "";
             });
           });
           // Si on n'envoie pas de photo
@@ -1010,17 +1067,17 @@ class _MyHomePageState extends State<MyHomePage> {
               print(response.body);
               print(reponse.data);
               if(reponse?.data?.condi != null){
-                if(reponse?.data?.condi == "3"){
+                if(reponse?.data?.condi == "3" || reponse?.data?.condi == 3){
                   setState(() {
                     condi = 3;
                   });
                 }
-                if(reponse?.data?.condi == "2"){
+                if(reponse?.data?.condi == "2" || reponse?.data?.condi == 2){
                   setState(() {
                     condi = 2;
                   });
                 }
-                if(reponse?.data?.condi == "5"){
+                if(reponse?.data?.condi == "5" || reponse?.data?.condi == 5){
                   setState(() {
                     condi = 5;
                   });
@@ -1044,6 +1101,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   qrCode1Value = "";
                   timer.cancel();
                 });
+                if (resetCount == 0) {
+                  _reset();
+                  resetCount++;
+                }
               }
               if (reponse?.show?.print == true){
                 // si l'impression est demandée, imprime, et reset les valeurs
@@ -1075,17 +1136,17 @@ class _MyHomePageState extends State<MyHomePage> {
                 isLoading = false;
                 timer.cancel();
                 if(reponse?.data?.condi != null){
-                  if(reponse?.data?.condi == "3"){
+                  if(reponse?.data?.condi == "3" || reponse?.data?.condi == 3){
                     setState(() {
                       condi = 3;
                     });
                   }
-                  if(reponse?.data?.condi == "2"){
+                  if(reponse?.data?.condi == "2" || reponse?.data?.condi == 2){
                     setState(() {
                       condi = 2;
                     });
                   }
-                  if(reponse?.data?.condi == "5"){
+                  if(reponse?.data?.condi == "5" || reponse?.data?.condi == 5){
                     setState(() {
                       condi = 5;
                     });
